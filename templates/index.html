@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Poker Game</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="main">
+    <!-- Poker Area -->
+    <div class="poker-area">
+      <h1>Poker Game</h1>
+      
+      <!-- Poker table in the center -->
+      <div class="table">
+
+        <div class="player top" id="playerTop"></div>
+        <div class="player left" id="playerLeft"></div>
+        <div class="player right" id="playerRight"></div>
+        <div class="player bottom" id="playerBottom"></div>
+
+
+        <div class="center-content">
+          <div class="pot">Pot: 100 chips</div>
+          
+          <div class="community-cards">
+            <!-- Cards will be injected here -->
+          </div>
+
+          <div class="hand">
+            <div class="card">🂡</div>
+            <div class="card">🂫</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Actions Panel -->
+      <div class="actions">
+        <button id="checkBtn">Check</button>
+        <button id="betBtn">Bet 10</button>
+        <button id="foldBtn">Fold</button>
+      </div>
+
+    </div>
+
+    <!-- Chat Panel -->
+    <div class="chat">
+      <h2>Chat</h2>
+      <div id="messages"></div>
+      <input id="chatInput" placeholder="Type a message..." />
+      <button id="sendBtn">Send</button>
+    </div>
+  </div>
+
+  <!-- Include .js files here -->
+  
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script src="{{ url_for('static', filename='socket.js') }}"></script>
+  <script src="{{ url_for('static', filename='game.js') }}"></script>
+  <script src="{{ url_for('static', filename='chat.js') }}"></script>
+</body>
+</html>

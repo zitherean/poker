@@ -1,0 +1,223 @@
+/* Poker Game CSS Styles */
+body {
+  background-color: #006400;
+  font-family: Arial, sans-serif;
+  color: white;
+}
+
+.main {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 100vh;
+  padding: 40px;
+  gap: 10px; 
+  box-sizing: border-box;
+}
+
+/* Poker area styles */
+.poker-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.poker-area h1 {
+  text-align: center;
+  color: white;
+  margin-bottom: 20px;
+}
+
+.table {
+  background-color: #228B22;
+  border-radius: 50%;
+  box-shadow: 0 0 40px #000;
+  width: 800px;
+  height: 450px;
+  padding: 30px;
+  box-sizing: border-box;
+  position: relative;
+  z-index: 1;
+  text-align: center;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+}
+
+/* Player styles */
+.player {
+  position: absolute;
+  background-color: #444;
+  padding: 6px 12px;
+  border-radius: 10px;
+  font-size: 14px;
+  box-shadow: 1px 1px 5px #000;
+  z-index: 2;
+}
+
+.player.top {
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.player.bottom {
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.player.left {
+  top: 50%;
+  left: 0;
+  transform: translateY(-50%);
+}
+
+.player.right {
+  top: 50%;
+  right: 0;
+  transform: translateY(-50%);
+}
+
+/* Center table content styles */
+.center-content {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Pot style */
+.pot {
+  font-size: 20px;
+  background-color: #8B0000;
+  padding: 10px 20px;
+  border-radius: 10px;
+  box-shadow: 1px 1px 5px #000;
+  color: white;
+}
+
+/* Community cards styles */
+.community-cards {
+  display: flex;
+  justify-content: center;
+  margin: 30px 0 10px;
+}
+
+.community-cards .card {
+  font-size: 80px;      
+  width: 50px;          
+  height: 90px;          
+  padding: 8px 12px;
+}
+
+/* Hand display */
+.hand {
+  display: flex;
+  justify-content: center;
+  margin-top: 40px;
+}
+
+/* Card styles */
+.card {
+  background: white;
+  color: black;
+  font-size: 100px;       
+  padding: 10px 15px;      
+  width: 60px;             
+  height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  margin: 0 10px;
+  box-shadow: 2px 2px 10px #000;
+}
+
+.card.red {
+  color: #DC143C	;
+}
+
+/* Actions styles */
+.actions {
+  margin-top: 40px;
+}
+
+.actions button {
+  margin: 10px;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  background-color: #444;
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.actions button:hover {
+  background-color: #666;
+}
+
+/* Chat styles */
+.chat {
+  width: 300px;
+  background: #2e2e2e;
+  margin-top: 60px;
+  margin-left: 200px;
+  padding: 20px;
+  border-radius: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 500px;
+  box-sizing: border-box;
+}
+
+.chat h2 {
+  margin-top: 0;
+  text-align: center;
+  color: #fff;
+}
+
+#messages {
+  flex-grow: 1;
+  overflow-y: auto;
+  border: 1px solid #555;
+  padding: 10px;
+  background-color: #1c1c1c;
+  border-radius: 10px;
+  color: #ccc;
+  font-size: 14px;
+  margin-bottom: 20px;
+}
+
+#chatInput {
+  padding: 8px;
+  border: none;
+  border-radius: 6px;
+  width: calc(100% - 70px);
+  margin-right: 10px;
+  margin-bottom: 50px;
+}
+
+#sendBtn {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 6px;
+  background-color: #bfa640;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+#sendBtn:hover {
+  background-color: #a08a34;
+}
