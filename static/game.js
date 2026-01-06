@@ -213,6 +213,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // show waiting/queued players
+    const waitingEl = document.getElementById('waitingList');
+        if (waitingEl) {
+        const w = data.waiting || [];
+        waitingEl.textContent = w.length ? `Queued: ${w.join(", ")}` : "";
+    }
+
+
   // === Helpers ===
   function renderCards(cards, container) {
     (cards || []).forEach(card => {

@@ -435,6 +435,7 @@ class PokerGame:
                     'bet': self.street_bets.get(sid, 0),
                 } for sid, p in self.players.items()
             },
+            'waiting': list(self.waiting.values()),
             'community_cards': self.community_cards,
             'pot': self.pot,
             'phase': self.phase,

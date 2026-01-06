@@ -24,7 +24,7 @@ timer_lock = Lock()
 turn_token = 0
 turn_expires_at = None
 
-START_DELAY_SECONDS = 5
+START_DELAY_SECONDS = 10
 start_lock = Lock()
 start_token = 0
 
