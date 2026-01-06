@@ -247,3 +247,55 @@ button:disabled {
 #sendBtn:hover {
   background-color: #a08a34;
 }
+
+/* showdown styles */
+
+.player.winner {
+  outline: 3px solid gold;
+  box-shadow: 0 0 16px rgba(255, 215, 0, .6);
+}
+
+.card.win {
+  border: 3px solid gold;
+  transform: translateY(-2px);
+}
+
+.player-cards {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+  justify-content: center;
+}
+
+.player-cards .card {
+  font-size: 40px;
+  width: 28px;
+  height: 45px;
+  padding: 6px;
+  margin: 0;
+}
+
+/* Dealer chip */
+
+.dealer-chip {
+  display: none;         
+  position: absolute;
+  top: 0px;
+  right: -40px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #000;
+  font-weight: 800;
+  font-size: 14px;
+  line-height: 26px;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,.35);
+  border: 2px solid rgba(0,0,0,.25);
+  user-select: none;
+}
+
+.player-label {
+  position: relative;
+}

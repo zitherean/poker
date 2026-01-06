@@ -1,144 +1,201 @@
 # This file sets up a Flask application with SocketIO for real-time communication.
 # It serves an index page and handles incoming messages from clients.
+# app.py
 import time
+from threading import Lock
 
 from flask import Flask, render_template, request
 from flask_socketio import SocketIO, emit
-from server.game_state import PokerGame  # Class is in server/game_state.py
-from threading import Lock
+from server.game_state import PokerGame
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
 socketio = SocketIO(app)
 
-# Initialize game logic
-game = PokerGame()
+game = PokerGame(starting_stack=200, small_blind=5, big_blind=10)
 
 @app.route('/')
 def index():
     return render_template('index.html')
 
-TURN_SECONDS = 15
-
+TURN_SECONDS = 30
+SHOWDOWN_SECONDS = 10
 timer_lock = Lock()
-turn_token = 0          # increments each time a new turn starts
-timer_task = None       # background task handle
-turn_expires_at = None  # epoch seconds
+turn_token = 0
+turn_expires_at = None
+
+START_DELAY_SECONDS = 5
+start_lock = Lock()
+start_token = 0
+
+
+def broadcast_state():
+    socketio.emit('state', game.get_public_state())
+
+    for sid in list(game.players.keys()):
+        socketio.emit('private', game.get_private_state(sid), to=sid)
+
+    # If we're in showdown, also send reveal payload
+    if getattr(game, "phase", None) == "showdown" and getattr(game, "last_showdown_payload", None):
+        socketio.emit('showdown', game.last_showdown_payload)
 
 def start_turn_timer():
-    """Start/reset the per-turn countdown and broadcast ticks."""
-    global turn_token, timer_task, turn_expires_at
+    global turn_token, turn_expires_at
 
     with timer_lock:
-        # advance token to invalidate any previous loop
+        # Invalidate any existing timers
         turn_token += 1
-        my_token = turn_token
+        my_token = turn_token 
 
-        # set new expiry
+        # Do not run timers during showdown
+        if game.phase == "showdown":
+            turn_expires_at = None
+            return
+
+        # Start timer only if someone has the turn
         if game.current_turn:
             turn_expires_at = time.time() + TURN_SECONDS
         else:
             turn_expires_at = None
             return
 
-        # launch background loop
-        def _tick():
+        def _tick(): 
             while True:
                 with timer_lock:
                     if my_token != turn_token:
-                        return  # a newer turn began
+                        return
+
                     remaining = max(0, int(turn_expires_at - time.time()))
                     current_name = game.players.get(game.current_turn, {}).get('name')
+
                     socketio.emit('timer', {
                         'remaining': remaining,
                         'current_turn_name': current_name
                     })
+
                     if remaining == 0:
-                        # timeout -> auto-fold current player
                         sid = game.current_turn
                         if sid and sid in game.players and not game.players[sid]['folded']:
-                            game.process_action(sid, 'fold')
+                            ok, err = game.process_action(sid, 'fold')
+                            if not ok:
+                                print("Auto-fold failed:", err)
+
                         game.advance_turn()
-                        socketio.emit('state', game.get_state())
-                        # start next player's timer
+                        broadcast_state()
+
+                        if game.phase == "showdown":
+                            schedule_next_hand()
+                            return
+
                         start_turn_timer()
                         return
+
                 socketio.sleep(1)
 
-        # start a new background task
         socketio.start_background_task(_tick)
 
-# Handle player joining
+def maybe_schedule_hand_start():
+    global start_token
+    with start_lock:
+        # Only schedule if waiting, at least 2 players, and not already running
+        if game.phase != "waiting":
+            return
+        if len(game.players) < 2:
+            return
+
+        start_token += 1
+        my_token = start_token
+
+        def _start_later():
+            socketio.sleep(START_DELAY_SECONDS)
+            with start_lock:
+                if my_token != start_token:
+                    return
+                if game.phase == "waiting" and len(game.players) >= 2:
+                    game.start_hand()
+                    broadcast_state()
+                    start_turn_timer()
+
+        socketio.start_background_task(_start_later)
+
+
 @socketio.on('join')
 def handle_join(data):
-    name = data['name']
+    name = data.get('name', 'Guest')
     sid = request.sid
-    added = game.add_player(sid, name)
-    if not added:
-        emit('error', {'chat': 'Name taken or table full'}, to=sid)
+
+    status, msg = game.add_player(sid, name)
+
+    if status == "error":
+        emit('error', {'chat': msg}, to=sid)
         return
-    print(f"{name} joined the game.")
+
+    if status == "queued":
+        emit('error', {'chat': msg}, to=sid)  # or emit('chat', ...) just to them
+        broadcast_state()
+        return
+
+    # seated
     socketio.emit('chat', f"🔔 {name} has joined the game.")
     broadcast_state()
-    # if the first player just joined or it's their turn, (re)start timer
+
+    # if between hands and >=2 players, schedule start
+    maybe_schedule_hand_start()
     start_turn_timer()
 
-# Handle disconnection
+
 @socketio.on('disconnect')
 def handle_disconnect():
     sid = request.sid
-    player = game.players.pop(sid, None)
+    player = game.remove_player(sid)
     if player:
-        print(f"{player['name']} disconnected.")
         socketio.emit('chat', f"❌ {player['name']} has left the game.")
-        # if current turn left, advance and restart timer
-        if game.current_turn == sid:
-            game.advance_turn()
-            broadcast_state()
-            start_turn_timer()
-        else:
-            broadcast_state()
+        broadcast_state()
+        start_turn_timer()
 
-# Handle chat messages
 @socketio.on('chat')
 def handle_chat(data):
-    user = data.get('user')
-    msg = data.get('msg')
-    full_msg = f"{user}: {msg}"
-    print(f"chat: {full_msg}")
-    emit('chat', full_msg, broadcast=True)
+    user = (data or {}).get('user', 'Unknown')
+    msg = (data or {}).get('msg', '')
+    msg = msg.strip()
+    if not msg:
+        return
 
-# Broadcast game state to all clients
-def broadcast_state():
-    emit('state', game.get_state(), broadcast=True)
+    socketio.emit('chat', {
+        'user': user,
+        'msg': msg
+    })
 
-# Handle player actions like betting or folding
 @socketio.on('action')
 def handle_action(data):
     sid = request.sid
-    if sid != game.current_turn:
-        emit('error', {'message': 'Not your turn'}, to=sid)
+    action = data.get('type')
+    amount = data.get('amount')  # optional int for bet/raise sizes
+
+    ok, err = game.process_action(sid, action, amount=amount)
+    if not ok:
+        emit('error', {'message': err}, to=sid)
         return
 
-    action = data['type']
-    game.process_action(sid, action)
     game.advance_turn()
     broadcast_state()
+
+    # If showdown, wait 10 seconds then start next hand
+    if game.phase == "showdown":
+        schedule_next_hand()
+        return
+
     start_turn_timer()
 
-# Handle player requests to reveal next phase (flop, turn, river)
-@socketio.on('next_phase')
-def handle_next_phase():
-    if game.phase in ['flop', 'turn', 'river']:
-        game.next_phase()
-        broadcast_state()
-
-# Reset the game
-@socketio.on('reset')
-def handle_reset():
-    game.reset_game()
-    broadcast_state()
+def schedule_next_hand():
+    def _resume():
+        socketio.sleep(SHOWDOWN_SECONDS)
+        if len(game.players) >= 2:
+            game.start_next_hand_after_showdown()
+            broadcast_state()
+            start_turn_timer()
+    socketio.start_background_task(_resume)
 
 if __name__ == '__main__':
-    socketio.run(app, debug=True)
-    # socketio.run(app, debug=True, host='0.0.0.0')
+    # socketio.run(app, debug=True)
+    socketio.run(app, debug=True, host='0.0.0.0', port=5000) # in house wifi version

@@ -32,10 +32,27 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Listen for incoming chat messages
-  socket.on('chat', msg => {
-      const msgDiv = document.createElement('div');
-      msgDiv.textContent = msg;
-      messages.appendChild(msgDiv);
-      messages.scrollTop = messages.scrollHeight;
+  socket.on('chat', data => {
+    const msgDiv = document.createElement('div');
+
+    // data can be {user, msg} or a plain string (fallback)
+    if (typeof data === 'string') {
+      msgDiv.textContent = data;
+    } else {
+      const user = data.user ?? 'Unknown';
+      const msg = data.msg ?? '';
+      msgDiv.textContent = `${user}: ${msg}`;
+    }
+
+    messages.appendChild(msgDiv);
+    messages.scrollTop = messages.scrollHeight;
   });
+
+  socket.on('error', (data) => {
+    if (!data) return;
+    const text = data.chat || data.message || JSON.stringify(data);
+    // show it in chat area instead of alert if you want
+    console.log("Server:", text);
+  });
+
 });

@@ -14,14 +14,29 @@
       <!-- Poker table in the center -->
       <div class="table">
 
-        <div class="player top" id="playerTop"></div>
-        <div class="player left" id="playerLeft"></div>
-        <div class="player right" id="playerRight"></div>
-        <div class="player bottom" id="playerBottom"></div>
+        <div class="player top" id="playerTop">
+          <span class="dealer-chip" id="dealerTop">D</span>
+          <div class="player-label" id="labelTop"></div>
+        </div>
+
+        <div class="player left" id="playerLeft">
+          <span class="dealer-chip" id="dealerLeft">D</span>
+          <div class="player-label" id="labelLeft"></div>
+        </div>
+
+        <div class="player right" id="playerRight">
+          <span class="dealer-chip" id="dealerRight">D</span>
+          <div class="player-label" id="labelRight"></div>
+        </div>
+
+        <div class="player bottom" id="playerBottom">
+          <span class="dealer-chip" id="dealerBottom">D</span>
+          <div class="player-label" id="labelBottom"></div>
+        </div>
 
 
         <div class="center-content">
-          <div class="pot">Pot: 100 chips</div>
+          <div class="pot">Pot: 0 chips</div>
           
           <div class="community-cards">
             <!-- Cards will be injected here -->
@@ -37,7 +52,7 @@
       <!-- Turn indicator -->
       <div id="turnIndicator" class="turn-indicator">
         <span id="turnText">—</span>
-        <span id="turnTimer" class="turn-timer">15s</span>
+        <span id="turnTimer" class="turn-timer">30s</span>
       </div>
 
       <!-- Actions Panel -->
