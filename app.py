@@ -2,15 +2,15 @@
 # It serves an index page and handles incoming messages from clients.
 # app.py
 import time
+import os
 from threading import Lock
-
 from flask import Flask, render_template, request
 from flask_socketio import SocketIO, emit
 from server.game_state import PokerGame
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
-socketio = SocketIO(app)
+socketio = SocketIO(app, async_mode="eventlet", cors_allowed_origins="*")
 
 game = PokerGame(starting_stack=200, small_blind=5, big_blind=10)
 
@@ -197,5 +197,5 @@ def schedule_next_hand():
     socketio.start_background_task(_resume)
 
 if __name__ == '__main__':
-    # socketio.run(app, debug=True)
-    socketio.run(app, debug=True, host='0.0.0.0', port=5000) # in house wifi version
+    port = int(os.environ.get("PORT", 5000))
+    socketio.run(app, host='0.0.0.0', port=port, debug=False)
