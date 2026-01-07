@@ -9,7 +9,7 @@ from flask_socketio import SocketIO, emit
 from server.game_state import PokerGame
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'secret!'
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret')
 socketio = SocketIO(app, async_mode="eventlet", cors_allowed_origins="*")
 
 game = PokerGame(starting_stack=200, small_blind=5, big_blind=10)
