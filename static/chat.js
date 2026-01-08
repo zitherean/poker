@@ -48,11 +48,19 @@ document.addEventListener('DOMContentLoaded', () => {
     messages.scrollTop = messages.scrollHeight;
   });
 
-  socket.on('error', (data) => {
+  socket.on('error', data => {
     if (!data) return;
-    const text = data.chat || data.message || JSON.stringify(data);
-    // show it in chat area instead of alert if you want
-    console.log("Server:", text);
+
+    const msgDiv = document.createElement('div');
+    const text = data.chat || data.message || 'Unknown error';
+
+    msgDiv.textContent = `⚠️ ${text}`;
+    msgDiv.style.color = '#ffcc00'; // optional styling
+    msgDiv.style.fontStyle = 'italic';
+
+    messages.appendChild(msgDiv);
+    messages.scrollTop = messages.scrollHeight;
   });
+
 
 });

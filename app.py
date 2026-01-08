@@ -12,7 +12,7 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret')
 socketio = SocketIO(app, async_mode="eventlet", cors_allowed_origins="*")
 
-game = PokerGame(starting_stack=200, small_blind=5, big_blind=10)
+game = PokerGame(starting_stack=1000, small_blind=5, big_blind=10)
 
 @app.route('/')
 def index():
@@ -43,56 +43,70 @@ def start_turn_timer():
     global turn_token, turn_expires_at
 
     with timer_lock:
-        # Invalidate any existing timers
         turn_token += 1
-        my_token = turn_token 
+        my_token = turn_token
 
-        # Do not run timers during showdown
         if game.phase == "showdown":
             turn_expires_at = None
             return
 
-        # Start timer only if someone has the turn
         if game.current_turn:
             turn_expires_at = time.time() + TURN_SECONDS
         else:
             turn_expires_at = None
             return
 
-        def _tick(): 
-            while True:
-                with timer_lock:
-                    if my_token != turn_token:
-                        return
+    def _tick():
+        while True:
+            # We'll decide actions inside the lock, but execute them outside.
+            do_restart_timer = False
+            do_schedule_next_hand = False
 
-                    remaining = max(0, int(turn_expires_at - time.time()))
-                    current_name = game.players.get(game.current_turn, {}).get('name')
+            with timer_lock:
+                if my_token != turn_token:
+                    return
 
-                    socketio.emit('timer', {
-                        'remaining': remaining,
-                        'current_turn_name': current_name
-                    })
+                remaining = max(0, int(turn_expires_at - time.time()))
+                current_name = game.players.get(game.current_turn, {}).get('name')
 
-                    if remaining == 0:
-                        sid = game.current_turn
-                        if sid and sid in game.players and not game.players[sid]['folded']:
-                            ok, err = game.process_action(sid, 'fold')
-                            if not ok:
-                                print("Auto-fold failed:", err)
+                socketio.emit('timer', {
+                    'remaining': remaining,
+                    'current_turn_name': current_name
+                })
 
-                        game.advance_turn()
-                        broadcast_state()
+                if remaining == 0:
+                    sid = game.current_turn
+                    if sid and sid in game.players and not game.players[sid]['folded']:
+                        ok, err = game.process_action(sid, 'fold')
+                        if not ok:
+                            print("Auto-fold failed:", err)
 
-                        if game.phase == "showdown":
-                            schedule_next_hand()
-                            return
+                    game.advance_turn()
+                    broadcast_state()
 
-                        start_turn_timer()
-                        return
+                    if game.phase == "showdown":
+                        do_schedule_next_hand = True
+                    else:
+                        do_restart_timer = True
 
-                socketio.sleep(1)
+                    # IMPORTANT: exit loop, but do follow-up outside lock
+                    # so we never call start_turn_timer() while holding timer_lock.
+                    pass
+                else:
+                    # keep ticking
+                    pass
 
-        socketio.start_background_task(_tick)
+            if remaining == 0:
+                if do_schedule_next_hand:
+                    schedule_next_hand()
+                elif do_restart_timer:
+                    start_turn_timer()
+                return
+
+            socketio.sleep(1)
+
+    socketio.start_background_task(_tick)
+
 
 def maybe_schedule_hand_start():
     global start_token
@@ -131,7 +145,8 @@ def handle_join(data):
         return
 
     if status == "queued":
-        emit('error', {'chat': msg}, to=sid)  # or emit('chat', ...) just to them
+        socketio.emit('chat', f"🕒 {name} is queued to join the next hand.")
+        emit('error', {'chat': msg}, to=sid)
         broadcast_state()
         return
 
@@ -170,7 +185,7 @@ def handle_chat(data):
 def handle_action(data):
     sid = request.sid
     action = data.get('type')
-    amount = data.get('amount')  # optional int for bet/raise sizes
+    amount = data.get('amount')
 
     ok, err = game.process_action(sid, action, amount=amount)
     if not ok:
