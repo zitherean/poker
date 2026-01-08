@@ -8,7 +8,7 @@ import itertools
 from collections import Counter
 
 class PokerGame:
-    def __init__(self, starting_stack=200, small_blind=5, big_blind=10):
+    def __init__(self, starting_stack=1000, small_blind=5, big_blind=10):
         self.starting_stack = starting_stack
         self.small_blind = small_blind
         self.big_blind = big_blind
@@ -79,7 +79,7 @@ class PokerGame:
         # mid-hand: queue them
         if self.phase in ['preflop', 'flop', 'turn', 'river']:
             self.waiting[sid] = name
-            return ("queued", "Game in progress — you’ll join next hand")
+            return ("queued", "Game in progress")
 
         # between hands: seat immediately
         self.players[sid] = {
@@ -467,7 +467,6 @@ class PokerGame:
 
         # helper to map within each suit block:
         # Order inside block: A,2,3,4,5,6,7,8,9,10,J,Q,K
-        # There is a "Knight" in tarot decks for some sets; standard playing cards skip it.
         def map_offset(offset):
             # offset 0->A, 1->2 ... 9->10, 10->J, 11->Q, 12->K
             if offset == 0: return 14
@@ -497,8 +496,6 @@ class PokerGame:
             offset = code - 0x1F0D1
             rank = map_offset(offset if offset < 11 else offset - 1)
             return rank, 'C'
-
-        raise ValueError(f"Unknown card: {c}")
 
     def _rank_5(self, five_cards):
         ranks = []
